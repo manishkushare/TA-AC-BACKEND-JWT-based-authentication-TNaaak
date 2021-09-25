@@ -8,6 +8,9 @@ var mongoose = require('mongoose');
 var indexRouter = require('./routes/index');
 var usersV1Router = require('./routes/usersV1');
 
+mongoose.connect('mongodb://localhost/demo-JWT-auth', (err)=> {
+  console.log(err? err: "Connected to Database");
+})
 var app = express();
 
 // view engine setup
