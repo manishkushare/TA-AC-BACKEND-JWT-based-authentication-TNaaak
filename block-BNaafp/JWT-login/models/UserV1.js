@@ -44,11 +44,19 @@ userSchema.methods.signToken = async function(){
             user : this.id,
             email : this.email
         };
-        const token = await jwt(payload, 'secretkey');
+        const token = await jwt.sign(payload, 'secretkey');
+        console.log(token, " : inside user schema signToken");
         return token;
     } catch (error) {
         return error;
     }
 }
 
+userSchema.methods.userJSON = async function(token){
+    return {
+        "name" : this.name,
+        "email" : this.email,
+        "token" : token
+    }
+}
 module.exports = mongoose.model('UserV1', userSchema);
