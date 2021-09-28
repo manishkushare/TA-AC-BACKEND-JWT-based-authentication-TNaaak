@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
 
 const userSchema = new Schema({
     name : {
@@ -32,6 +33,19 @@ userSchema.methods.verifyPassword = async function(password){
     try {
         const result =await bcrypt.compare(password,this.password);
         return result
+    } catch (error) {
+        return error;
+    }
+};
+
+userSchema.methods.signToken = async function(){
+    try {
+        var payload = {
+            user : this.id,
+            email : this.email
+        };
+        const token = await jwt(payload, 'secretkey');
+        return token;
     } catch (error) {
         return error;
     }

@@ -29,6 +29,8 @@ router.post('/login', async (req,res,next)=> {
     if(!verify){
       return res.status(400).json({error : "Password does not match"});
     }
+    const token = await user.signToken();
+    res.json({user,token});
   } catch (error) {
     next(error);
   }
