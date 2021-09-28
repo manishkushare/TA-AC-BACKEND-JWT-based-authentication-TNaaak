@@ -9,7 +9,9 @@ router.get('/', function(req, res, next) {
 router.post('/registration', async (req,res,next)=> {
   try {
     const user = await User.create(req.body);
-    res.status(201).json({user});
+    const token = await user.signToken();
+    console.log(token, " :inside user route - registration");
+    res.status(201).json({user : await user.userJSON(token)});
   } catch (error) {
     next(error);
   }
@@ -30,7 +32,7 @@ router.post('/login', async (req,res,next)=> {
       return res.status(400).json({error : "Password does not match"});
     }
     const token = await user.signToken();
-    res.json({user,token});
+    res.json({user : await user.userJSON(token)});
   } catch (error) {
     next(error);
   }
