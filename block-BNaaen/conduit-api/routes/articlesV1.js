@@ -5,6 +5,7 @@ var auth = require('../middlewares/auth');
 var slugPackage = require('slug');
 var mongoose = require('mongoose');
 var Comment = require('../models/CommentsV1');
+var User = require('../models/UserV1');
 
 // get articles by default
 router.get('/', auth.verifyToken,async (req,res,next)=> {
@@ -19,16 +20,24 @@ router.get('/', auth.verifyToken,async (req,res,next)=> {
             var articles = await Article.find({taglist : query}).populate('author').limit(limit).skip(offset).sort({"createdAt" : -1});
             articles = await Promise.all(articles.map(async (article) =>  article.articleJSON(req.user,article.author)));
             return res.json({  articles , articlesCount : articles.length});
-        }
-        if('author' in query){
-            var articles = await Article.find({}).populate({
-                path : 'author',
-                $match : {'author.username' : query}
-            }).limit(limit).skip(offset).sort({"createdAt" : -1});
+        }else if('author' in req.query){
+            const author = await User.findOne({username : query});
+            var articles = await Article.find({author : author.id}).populate('author').limit(limit).skip(offset).sort({"createdAt" : -1});
             articles = await Promise.all(articles.map(async (article) =>  article.articleJSON(req.user,article.author)));
-            res.json({  articles , articlesCount : articles.length});
+            return res.json({  articles , articlesCount : articles.length});
+        } else if('favorited' in req.query){
+            const user = await User.findOne({username : query});
+            var articles = await Article.find({liked : user.id}).populate('author').limit(limit).skip(offset).sort({"createdAt" : -1});
+            articles = await Promise.all(articles.map(async (article) =>  article.articleJSON(req.user,article.author)));
+            return res.json({  articles , articlesCount : articles.length});
 
-        } 
+        } else{
+            const articles = await Article.find({}).populate('author').limit(limit).skip(offset).sort({"createdAt": -1});
+            articles = await Promise.all(articles.map(async (article) =>  article.articleJSON(req.user,article.author)));
+            return res.json({  articles , articlesCount : articles.length});
+
+        }
+
         
         
     } catch (error) {
@@ -37,15 +46,22 @@ router.get('/', auth.verifyToken,async (req,res,next)=> {
 });
 
 // feed articles
-router.get('/feed', async (req,res,next)=> {
+router.get('/feed',auth.verifyToken, async (req,res,next)=> {
+    console.log("hey");
+    console.log(req.user, " :current user")
     const limit = req.query.limits? req.query.limit : 20;
     const offset = req.query.offset? req.query.offset :0;
     try {
-        
+        let followings = await User.findById(req.user.id).distinct('followings');
+        let feeds = await Article.find({author : {$in : followings}}).populate('author').limit(limit).skip(offset).sort({"createdAt": -1});
+        feeds = await Promise.all(feeds.map(async (feed) =>  feed.articleJSON(req.user,feed.author)));
+        return res.json({  articles : feeds, articlesCount : feeds.length});
+
     } catch (error) {
-        
+        next(error);
     }
 });
+
 //add comment to the article
 router.post('/:slug/comments', auth.verifyToken,async (req,res,next)=> {
     const slug = req.params.slug;
